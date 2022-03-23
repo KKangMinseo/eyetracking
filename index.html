@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <title>My experiment</title>
+    <script src="jspsych-6.3.1/jspsych.js"></script>
+    <script src="jspsych-6.3.1/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="jspsych-6.3.1/plugins/jspsych-image-keyboard-response.js"></script>
+    <script src="jspsych-6.3.1/plugins/jspsych-preload.js"></script>
+    <script src="jspsych-6.3.1/plugins/jspsych-survey-text.js"></script>
+    <link href="jspsych-6.3.1/css/jspsych.css" rel="stylesheet" type="text/css">
+  </head>
+  <body style=background-color:#000000>
+  </body>
+  <script>
+
+    /* create timeline */
+    var timeline = [];
+
+    var survey = {
+      type: 'survey-text',
+      questions: [
+      {prompt: '<p style="font-size:30px;color:white;">Name</p>'},
+      {prompt: '<p style="font-size:30px;color:white;">Date of birth?</p>', placeholder: 'mm/dd/yyyy', required: true}
+      ]
+    }
+    timeline.push(survey)
+
+    /* preload images */
+    var preload = {
+      type: 'preload',
+      images: ['img/AD1.png', 'img/AD2.png', 'img/AD3.png', 'img/AD4.png', "img/BD13.png", "img/BD14.png", "img/BD15.png", "img/BD16.png"]
+    }
+    timeline.push(preload);
+
+    /* define welcome message trial */
+    var welcome = {
+      type: "html-keyboard-response",
+      stimulus: '<p style="font-size:30px;color:white;">Welcome to the experiment. Press any key to begin.</p>'
+    };
+    timeline.push(welcome);
+
+    /* define instructions trial */
+    var instructions = {
+      type: "html-keyboard-response",
+      stimulus: `
+
+        <p style="font-size:30px;color:white;">Press any key to begin.</p>
+      `,
+      post_trial_gap: 2000
+    };
+    timeline.push(instructions);
+
+    /* test trials */
+    var test_stimuli = [
+      { abcdef: "img/AD1.png", correct_response: 'j'},
+      { abcdef: "img/AD2.png", correct_response: 'j'},
+      { abcdef: "img/AD3.png", correct_response: 'j'},
+      { abcdef: "img/AD4.png", correct_response: 'j'},
+      { abcdef: "img/BD13.png", correct_response: 'f'},
+      { abcdef: "img/BD14.png", correct_response: 'f'},
+      { abcdef: "img/BD15.png", correct_response: 'f'},
+      { abcdef: "img/BD16.png", correct_response: 'f'},
+    ];
+
+    var fixation = {
+      type: 'html-keyboard-response',
+      stimulus: '<div style="font-size:60px;">+</div>',
+      choices: jsPsych.NO_KEYS,
+      trial_duration: function(){
+    return jsPsych.randomization.sampleWithoutReplacement([250, 500, 750, 1000, 1250, 1500, 1750, 2000], 1)[0];
+      },
+      data: {
+        task: 'fixation'
+      }
+    }
+
+    var test = {
+      type: "image-keyboard-response",
+      stimulus: jsPsych.timelineVariable('abcdef'),/*test_stimuli에서 지정한 이름?*/
+      choices: ['f', 'j'],
+      data: {
+        task : 'response',
+        correct_response: jsPsych.timelineVariable('correct_response')
+      },
+      on_finish: function(data){data.correct = jsPsych.pluginAPI.compareKeys(data.response, data.correct_response);}/*response랑 correct_response를 비교해서 ture or false를 return*/
+    }
+
+    var test_procedure = {
+      timeline: [fixation, test],
+      timeline_variables: test_stimuli, /*여기 변수의 크기 만큼 반복 시행?*/
+      randomize_order: true,
+      repetitions: 1
+    }
+
+    timeline.push(test_procedure);
+
+        var debrief_block = {
+  type: "html-keyboard-response",
+  stimulus: function() {
+
+    var trials = jsPsych.data.get().filter({task: 'response'});/*모든 데이터를 얻음*/
+    var correct_trials = trials.filter({correct: true});/*correct가 true인 데이터만 얻음*/
+    var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+    var rt = Math.round(correct_trials.select('rt').mean());
+
+    return `<p style="font-size:30px;color:white;">You responded correctly on ${accuracy}% of the trials.</p>
+      <p style="font-size:30px;color:white;">Your average response time was ${rt}ms.</p>
+      <p style="font-size:30px;color:white;">Press any key to complete the experiment. Thank you!</p>`;
+
+  }
+};
+
+timeline.push(debrief_block);
+
+    /* start the experiment */
+    jsPsych.init({
+      timeline: timeline,
+      on_finish: function(){
+        jsPsych.data.displayData();
+      }
+    });
+  </script>
+  </html>
